@@ -1,74 +1,114 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { Link } from 'expo-router';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const RECENT_WORKOUTS = [
+  { id: '1', name: 'HIIT Cardio', duration: '30 min' },
+  { id: '2', name: 'Tabata Core', duration: '20 min' },
+  { id: '3', name: 'Custom Workout', duration: '45 min' },
+];
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView style={styles.container}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Start</Text>
+        <Link href="/workout-player" asChild>
+          <Pressable style={styles.startButton}>
+            <Text style={styles.startButtonText}>Start New Workout</Text>
+          </Pressable>
+        </Link>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Workouts</Text>
+        {RECENT_WORKOUTS.map((workout) => (
+          <Pressable 
+            key={workout.id} 
+            style={styles.workoutCard}
+            onPress={() => {}}
+          >
+            <Text style={styles.workoutName}>{workout.name}</Text>
+            <Text style={styles.workoutDuration}>{workout.duration}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Templates</Text>
+        <View style={styles.templateGrid}>
+          <Pressable style={styles.templateCard} onPress={() => {}}>
+            <Text style={styles.templateTitle}>Tabata</Text>
+            <Text style={styles.templateDesc}>20s work / 10s rest</Text>
+          </Pressable>
+          <Pressable style={styles.templateCard} onPress={() => {}}>
+            <Text style={styles.templateTitle}>HIIT</Text>
+            <Text style={styles.templateDesc}>45s work / 15s rest</Text>
+          </Pressable>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  stepContainer: {
-    gap: 8,
+  section: {
+    padding: 16,
+    backgroundColor: '#fff',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  startButton: {
+    backgroundColor: '#2563EB',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  workoutCard: {
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  workoutName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  workoutDuration: {
+    color: '#666',
+  },
+  templateGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  templateCard: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  templateTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  templateDesc: {
+    color: '#666',
+    fontSize: 14,
   },
 });
