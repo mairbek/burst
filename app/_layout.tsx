@@ -30,7 +30,17 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{ 
+            headerShown: true,
+            headerTitle: "Interval Timer",
+            headerStyle: {
+              backgroundColor: colorScheme === 'dark' ? '#1F2937' : '#FFFFFF',
+            },
+            headerTintColor: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
+          }} 
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
