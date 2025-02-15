@@ -4,7 +4,7 @@ import { Stack, router } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Workout, Exercise, sampleWorkout } from './types/workout';
 
-type WorkoutPhase = 'prepare' | 'work' | 'rest';
+type WorkoutPhase = 'prepare' | 'exercise' | 'rest';
 
 interface WorkoutPlayerProps {
   workout?: Workout;
@@ -13,15 +13,10 @@ interface WorkoutPlayerProps {
 
 export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: WorkoutPlayerProps) {
   const [phase, setPhase] = useState<WorkoutPhase>('prepare');
-  const [timeLeft, setTimeLeft] = useState(10); // Start with 10s preparation
-  const [round, setRound] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(3); // reduced from 10 to 3 seconds
   const [isActive, setIsActive] = useState(false);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const currentExercise = workout.exercises[currentExerciseIndex];
-
-  const totalRounds = 8;
-  const workTime = 45;
-  const restTime = 15;
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -33,26 +28,32 @@ export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: W
     } else if (timeLeft === 0) {
       // Phase transition logic
       if (phase === 'prepare') {
-        setPhase('work');
-        setTimeLeft(workTime);
-      } else if (phase === 'work') {
-        if (round < totalRounds) {
-          setPhase('rest');
-          setTimeLeft(restTime);
+        setPhase('exercise');
+        setTimeLeft(currentExercise.duration);
+      } else if (phase === 'exercise') {
+        // Check if there are more exercises
+        if (currentExerciseIndex < workout.exercises.length - 1) {
+          const nextExercise = workout.exercises[currentExerciseIndex + 1];
+          setCurrentExerciseIndex(currentExerciseIndex + 1);
+          setTimeLeft(nextExercise.duration);
+          setPhase(nextExercise.type === 'rest' ? 'rest' : 'exercise');
         } else {
-          setIsActive(false);
           // Workout complete
+          setIsActive(false);
           onComplete?.();
         }
       } else if (phase === 'rest') {
-        setRound((r) => r + 1);
-        setPhase('work');
-        setTimeLeft(workTime);
+        // After rest, move to next exercise
+        if (currentExerciseIndex < workout.exercises.length - 1) {
+          setCurrentExerciseIndex(currentExerciseIndex + 1);
+          setTimeLeft(workout.exercises[currentExerciseIndex + 1].duration);
+          setPhase('exercise');
+        }
       }
     }
 
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, phase, round, onComplete]);
+  }, [isActive, timeLeft, phase, currentExerciseIndex, workout.exercises, onComplete]);
 
   const toggleWorkout = () => {
     setIsActive(!isActive);
@@ -68,7 +69,7 @@ export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: W
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Workout',
+          headerTitle: workout.name,
           headerLeft: () => (
             <Pressable onPress={() => router.back()}>
               <FontAwesome name="close" size={24} color="#000" />
@@ -79,14 +80,20 @@ export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: W
 
       <View style={styles.content}>
         <Text style={styles.phase}>
-          {phase === 'prepare' ? 'Get Ready' : phase === 'work' ? 'Work' : 'Rest'}
+          {phase === 'prepare' ? 'Get Ready' : currentExercise.name}
         </Text>
         
         <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
         
-        <Text style={styles.rounds}>
-          Round {round} of {totalRounds}
+        <Text style={styles.progress}>
+          Exercise {currentExerciseIndex + 1} of {workout.exercises.length}
         </Text>
+
+        {currentExercise.description && (
+          <Text style={styles.description}>
+            {currentExercise.description}
+          </Text>
+        )}
 
         <View style={styles.controls}>
           <Pressable 
@@ -105,8 +112,8 @@ export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: W
             onPress={() => {
               setIsActive(false);
               setPhase('prepare');
-              setTimeLeft(10);
-              setRound(1);
+              setTimeLeft(3); // reduced from 10 to 3 seconds
+              setCurrentExerciseIndex(0);
             }}
           >
             <FontAwesome name="refresh" size={24} color="#fff" />
@@ -133,16 +140,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 20,
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
   timer: {
     fontSize: 72,
     fontWeight: 'bold',
     marginBottom: 20,
   },
-  rounds: {
+  progress: {
     fontSize: 18,
     color: '#666',
+    marginBottom: 20,
+  },
+  description: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
     marginBottom: 40,
+    paddingHorizontal: 20,
   },
   controls: {
     flexDirection: 'row',
