@@ -2,14 +2,22 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import { Workout, Exercise, sampleWorkout } from './types/workout';
 
 type WorkoutPhase = 'prepare' | 'work' | 'rest';
 
-export default function WorkoutPlayer() {
+interface WorkoutPlayerProps {
+  workout?: Workout;
+  onComplete?: () => void;
+}
+
+export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: WorkoutPlayerProps) {
   const [phase, setPhase] = useState<WorkoutPhase>('prepare');
   const [timeLeft, setTimeLeft] = useState(10); // Start with 10s preparation
   const [round, setRound] = useState(1);
   const [isActive, setIsActive] = useState(false);
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const currentExercise = workout.exercises[currentExerciseIndex];
 
   const totalRounds = 8;
   const workTime = 45;
@@ -34,6 +42,7 @@ export default function WorkoutPlayer() {
         } else {
           setIsActive(false);
           // Workout complete
+          onComplete?.();
         }
       } else if (phase === 'rest') {
         setRound((r) => r + 1);
@@ -43,7 +52,7 @@ export default function WorkoutPlayer() {
     }
 
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, phase, round]);
+  }, [isActive, timeLeft, phase, round, onComplete]);
 
   const toggleWorkout = () => {
     setIsActive(!isActive);
