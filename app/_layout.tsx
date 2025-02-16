@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -28,22 +29,24 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
-            headerShown: true,
-            headerTitle: "Interval Timer",
-            headerStyle: {
-              backgroundColor: colorScheme === 'dark' ? '#1F2937' : '#FFFFFF',
-            },
-            headerTintColor: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
-          }} 
-        />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen 
+            name="(tabs)" 
+            options={{ 
+              headerShown: true,
+              headerTitle: "Interval Timer",
+              headerStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#1F2937' : '#FFFFFF',
+              },
+              headerTintColor: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
+            }} 
+          />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
