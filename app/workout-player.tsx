@@ -1,17 +1,14 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { Workout, Exercise, sampleWorkout } from './types/workout';
+import { Workout, Exercise, workouts } from './types/workout';
 
 type WorkoutPhase = 'prepare' | 'exercise' | 'rest';
 
-interface WorkoutPlayerProps {
-  workout?: Workout;
-  onComplete?: () => void;
-}
-
-export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: WorkoutPlayerProps) {
+export default function WorkoutPlayer() {
+  const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
+  const workout = workouts.find(w => w.id === workoutId) ?? workouts[0];
   const [phase, setPhase] = useState<WorkoutPhase>('prepare');
   const [timeLeft, setTimeLeft] = useState(3); // reduced from 10 to 3 seconds
   const [isActive, setIsActive] = useState(false);
@@ -40,7 +37,7 @@ export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: W
         } else {
           // Workout complete
           setIsActive(false);
-          onComplete?.();
+          router.back(); // Navigate back when workout is complete
         }
       } else if (phase === 'rest') {
         // After rest, move to next exercise
@@ -53,7 +50,7 @@ export default function WorkoutPlayer({ workout = sampleWorkout, onComplete }: W
     }
 
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, phase, currentExerciseIndex, workout.exercises, onComplete]);
+  }, [isActive, timeLeft, phase, currentExerciseIndex, workout.exercises]);
 
   const toggleWorkout = () => {
     setIsActive(!isActive);

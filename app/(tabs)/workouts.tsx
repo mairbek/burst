@@ -1,55 +1,49 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
+import { router } from 'expo-router';
+import { workouts } from '../types/workout';
 import { FontAwesome } from '@expo/vector-icons';
-
-const WORKOUTS = [
-  {
-    id: '1',
-    name: 'HIIT Cardio',
-    intervals: '45s work / 15s rest',
-    rounds: 8,
-  },
-  {
-    id: '2',
-    name: 'Tabata Core',
-    intervals: '20s work / 10s rest',
-    rounds: 8,
-  },
-  {
-    id: '3',
-    name: 'Endurance',
-    intervals: '60s work / 30s rest',
-    rounds: 10,
-  },
-];
 
 export default function WorkoutsScreen() {
   return (
     <View style={styles.container}>
-      <Pressable style={styles.createButton} onPress={() => {}}>
-        <FontAwesome name="plus" size={20} color="#fff" />
-        <Text style={styles.createButtonText}>Create New Workout</Text>
-      </Pressable>
-
-      <ScrollView>
-        {WORKOUTS.map((workout) => (
-          <Pressable key={workout.id} style={styles.workoutCard}>
-            <View>
+      <FlatList
+        data={workouts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item: workout }) => (
+          <Pressable
+            style={styles.workoutCard}
+            onPress={() => router.push({
+              pathname: '/workout-player',
+              params: { workoutId: workout.id }
+            })}
+          >
+            <View style={styles.workoutHeader}>
               <Text style={styles.workoutName}>{workout.name}</Text>
-              <Text style={styles.workoutDetails}>
-                {workout.intervals} • {workout.rounds} rounds
-              </Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{workout.difficulty}</Text>
+              </View>
             </View>
-            <View style={styles.actions}>
-              <Pressable style={styles.actionButton}>
-                <FontAwesome name="play" size={20} color="#2563EB" />
-              </Pressable>
-              <Pressable style={styles.actionButton}>
-                <FontAwesome name="edit" size={20} color="#2563EB" />
-              </Pressable>
+            
+            <Text style={styles.description}>{workout.description}</Text>
+            
+            <View style={styles.workoutFooter}>
+              <View style={styles.stat}>
+                <FontAwesome name="clock-o" size={16} color="#666" />
+                <Text style={styles.statText}>
+                  {workout.exercises.reduce((acc, ex) => acc + ex.duration, 0)}s
+                </Text>
+              </View>
+              <View style={styles.stat}>
+                <FontAwesome name="tasks" size={16} color="#666" />
+                <Text style={styles.statText}>
+                  {workout.exercises.filter(ex => ex.type === 'exercise').length} exercises
+                </Text>
+              </View>
             </View>
           </Pressable>
-        ))}
-      </ScrollView>
+        )}
+        contentContainerStyle={styles.list}
+      />
     </View>
   );
 }
@@ -58,45 +52,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 16,
   },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2563EB',
+  list: {
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    gap: 8,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    gap: 16,
   },
   workoutCard: {
-    padding: 16,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  workoutHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   workoutName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 4,
   },
-  workoutDetails: {
+  badge: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  description: {
     color: '#666',
+    fontSize: 14,
   },
-  actions: {
+  workoutFooter: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 16,
   },
-  actionButton: {
-    padding: 8,
+  stat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    color: '#666',
+    fontSize: 14,
   },
 }); 
