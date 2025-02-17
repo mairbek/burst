@@ -3,11 +3,13 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { WorkoutStorage } from './utils/storage';
+import { getDefaultWorkouts } from './types/workout';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -17,6 +19,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [isStorageInitialized, setStorageInitialized] = useState(false);
 
   useEffect(() => {
     if (loaded) {
@@ -24,7 +27,17 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
+  useEffect(() => {
+    if (!isStorageInitialized) {
+      const workouts = WorkoutStorage.getWorkouts();
+      if (workouts.length === 0) {
+        WorkoutStorage.saveWorkouts(getDefaultWorkouts());
+      }
+      setStorageInitialized(true);
+    }
+  }, [isStorageInitialized]);
+
+  if (!loaded || !isStorageInitialized) {
     return null;
   }
 

@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { Workout, Exercise, workouts } from './types/workout';
+import { Workout, Exercise } from './types/workout';
+import { WorkoutStorage } from './utils/storage';
 
 export default function WorkoutEditor() {
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
-  const existingWorkout = workouts.find(w => w.id === workoutId);
+  const existingWorkout = workoutId ? WorkoutStorage.getWorkout(workoutId) : undefined;
   
   const [workout, setWorkout] = useState<Partial<Workout>>(
     existingWorkout || {
@@ -35,12 +36,9 @@ export default function WorkoutEditor() {
     };
 
     if (existingWorkout) {
-      // Update existing workout
-      const index = workouts.findIndex(w => w.id === workoutId);
-      workouts[index] = newWorkout;
+      WorkoutStorage.updateWorkout(newWorkout);
     } else {
-      // Add new workout
-      workouts.push(newWorkout);
+      WorkoutStorage.addWorkout(newWorkout);
     }
 
     router.back();

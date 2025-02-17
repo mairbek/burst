@@ -22,7 +22,7 @@ export interface Workout {
   updatedAt: Date;
 }
 
-export const workouts: Workout[] = [
+export const getDefaultWorkouts = (): Workout[] => [
   {
     id: '1',
     name: 'Boxing HIIT',

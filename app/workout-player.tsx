@@ -2,13 +2,21 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { Workout, Exercise, workouts } from './types/workout';
+import { Workout, Exercise } from './types/workout';
+import { WorkoutStorage } from './utils/storage';
 
 type WorkoutPhase = 'prepare' | 'exercise' | 'rest';
 
 export default function WorkoutPlayer() {
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
-  const workout = workouts.find(w => w.id === workoutId) ?? workouts[0];
+  const workout = workoutId ? WorkoutStorage.getWorkout(workoutId) : undefined;
+
+  // Redirect back if no workout found
+  if (!workout) {
+    router.back();
+    return null;
+  }
+
   const [phase, setPhase] = useState<WorkoutPhase>('prepare');
   const [timeLeft, setTimeLeft] = useState(3); // reduced from 10 to 3 seconds
   const [isActive, setIsActive] = useState(false);

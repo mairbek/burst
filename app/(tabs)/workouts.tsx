@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
-import { router } from 'expo-router';
-import { workouts, Workout } from '../types/workout';
+import { router, useFocusEffect } from 'expo-router';
+import { Workout } from '../types/workout';
+import { WorkoutStorage } from '../utils/storage';
 import { FontAwesome } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useState } from 'react';
 
 const LeftActions = ({ onStart }: { onStart: () => void }) => {
   return (
@@ -17,34 +18,44 @@ const LeftActions = ({ onStart }: { onStart: () => void }) => {
   );
 };
 
-const RightActions = ({ onEdit }: { onEdit: () => void }) => {
+const RightActions = ({ onEdit, onDelete }: { onEdit: () => void, onDelete: () => void }) => {
   return (
-    <Pressable 
-      style={[styles.swipeAction, styles.editAction]}
-      onPress={onEdit}
-    >
-      <FontAwesome name="edit" size={24} color="#fff" />
-      <Text style={styles.swipeActionText}>Edit</Text>
-    </Pressable>
+    <View style={styles.rightActions}>
+      <Pressable 
+        style={[styles.swipeAction, styles.editAction]}
+        onPress={onEdit}
+      >
+        <FontAwesome name="edit" size={24} color="#fff" />
+        <Text style={styles.swipeActionText}>Edit</Text>
+      </Pressable>
+      <Pressable 
+        style={[styles.swipeAction, styles.deleteAction]}
+        onPress={onDelete}
+      >
+        <FontAwesome name="trash" size={24} color="#fff" />
+        <Text style={styles.swipeActionText}>Delete</Text>
+      </Pressable>
+    </View>
   );
 };
 
 export default function WorkoutsScreen() {
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
   
+  // Refresh workouts when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setWorkouts(WorkoutStorage.getWorkouts());
+    }, [])
+  );
+
   // Close all open swipeables
   const closeAll = useCallback(() => {
     Object.values(swipeableRefs.current).forEach(ref => {
       ref?.close();
     });
   }, []);
-
-  // Clean up swipe states when leaving the screen
-  useEffect(() => {
-    return () => {
-      closeAll();
-    };
-  }, [closeAll]);
 
   const renderWorkoutItem = ({ item: workout }: { item: Workout }) => {
     const handleEdit = () => {
@@ -53,6 +64,12 @@ export default function WorkoutsScreen() {
         pathname: '/workout-editor',
         params: { workoutId: workout.id }
       });
+    };
+
+    const handleDelete = () => {
+      closeAll();
+      WorkoutStorage.deleteWorkout(workout.id);
+      setWorkouts(WorkoutStorage.getWorkouts()); // Refresh the list
     };
 
     const handleStart = () => {
@@ -71,7 +88,9 @@ export default function WorkoutsScreen() {
           }
         }}
         renderLeftActions={() => <LeftActions onStart={handleStart} />}
-        renderRightActions={() => <RightActions onEdit={handleEdit} />}
+        renderRightActions={() => (
+          <RightActions onEdit={handleEdit} onDelete={handleDelete} />
+        )}
         overshootLeft={false}
         overshootRight={false}
         onSwipeableWillOpen={() => {
@@ -113,21 +132,19 @@ export default function WorkoutsScreen() {
   };
 
   return (
-    <Pressable 
-      style={styles.container} 
-      onPress={closeAll}
-    >
+    <View style={styles.container}>
       <FlatList
         data={workouts}
         keyExtractor={(item) => item.id}
         renderItem={renderWorkoutItem}
         contentContainerStyle={styles.list}
         onScrollBeginDrag={closeAll}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <Pressable
             style={styles.addButton}
             onPress={(e) => {
-              e.stopPropagation(); // Prevent container's onPress from firing
+              e.stopPropagation();
               closeAll();
               router.push('/workout-editor');
             }}
@@ -137,7 +154,7 @@ export default function WorkoutsScreen() {
           </Pressable>
         }
       />
-    </Pressable>
+    </View>
   );
 }
 
@@ -148,7 +165,10 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    gap: 16,
+    paddingBottom: 32,
+  },
+  separator: {
+    height: 16, // Space between workout cards
   },
   workoutCard: {
     backgroundColor: '#fff',
@@ -160,6 +180,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    marginHorizontal: 1, // Helps with shadow rendering on Android
   },
   workoutHeader: {
     flexDirection: 'row',
@@ -237,5 +258,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginTop: 4,
+  },
+  rightActions: {
+    flexDirection: 'row',
+  },
+  deleteAction: {
+    backgroundColor: '#EF4444', // red
   },
 }); 
