@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Workout, Exercise } from './types/workout';
 import { WorkoutStorage } from './utils/storage';
 import SoundManager from './utils/sounds';
+import { WorkoutImages } from './utils/images';
 
 type WorkoutPhase = 'prepare' | 'exercise' | 'rest' | 'complete';
 
@@ -150,6 +151,13 @@ export default function WorkoutPlayer() {
       return (
         <View style={styles.content}>
           <Text style={styles.phase}>Workout Complete!</Text>
+          <View style={styles.imageContainer}>
+            <Image 
+              source={WorkoutImages.complete}
+              style={styles.phaseImage}
+              resizeMode="contain"
+            />
+          </View>
           <Text style={styles.description}>Great job! You've completed {workout.name}</Text>
           <View style={styles.controls}>
             <Pressable 
@@ -168,6 +176,18 @@ export default function WorkoutPlayer() {
         <Text style={styles.phase}>
           {phase === 'prepare' ? 'Get Ready' : currentExercise.name}
         </Text>
+
+        <View style={styles.imageContainer}>
+          <Image 
+            source={
+              phase === 'prepare' ? WorkoutImages.prepare :
+              phase === 'rest' ? WorkoutImages.rest :
+              WorkoutImages.exercise
+            }
+            style={styles.phaseImage}
+            resizeMode="contain"
+          />
+        </View>
         
         <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
         
@@ -277,5 +297,17 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     backgroundColor: '#666',
+  },
+  imageContainer: {
+    width: '100%',
+    height: 200,
+    marginBottom: 20,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  phaseImage: {
+    width: '100%',
+    height: '100%',
   },
 }); 
