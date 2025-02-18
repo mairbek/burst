@@ -46,7 +46,11 @@ export default function WorkoutsScreen() {
   // Refresh workouts when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      setWorkouts(WorkoutStorage.getWorkouts());
+      const loadWorkouts = async () => {
+        const storedWorkouts = await WorkoutStorage.getWorkouts();
+        setWorkouts(storedWorkouts);
+      };
+      loadWorkouts();
     }, [])
   );
 
@@ -66,10 +70,11 @@ export default function WorkoutsScreen() {
       });
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
       closeAll();
-      WorkoutStorage.deleteWorkout(workout.id);
-      setWorkouts(WorkoutStorage.getWorkouts()); // Refresh the list
+      await WorkoutStorage.deleteWorkout(workout.id);
+      const updatedWorkouts = await WorkoutStorage.getWorkouts();
+      setWorkouts(updatedWorkouts);
     };
 
     const handleStart = () => {

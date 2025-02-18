@@ -9,25 +9,33 @@ type IconName = keyof typeof FontAwesome.glyphMap;
 
 export default function WorkoutEditor() {
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
-  const existingWorkout = workoutId ? WorkoutStorage.getWorkout(workoutId) : undefined;
+  const [existingWorkout, setExistingWorkout] = useState<Workout | undefined>();
+  const [workout, setWorkout] = useState<Partial<Workout>>({
+    name: '',
+    description: '',
+    exercises: [],
+    difficulty: 'beginner',
+    category: 'strength',
+  });
   
-  const [workout, setWorkout] = useState<Partial<Workout>>(
-    existingWorkout || {
-      name: '',
-      description: '',
-      exercises: [],
-      difficulty: 'beginner',
-      category: 'strength',
-    }
-  );
-
-  const [exercises, setExercises] = useState<Exercise[]>(
-    existingWorkout?.exercises || []
-  );
-
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
-  const saveWorkout = () => {
+  useEffect(() => {
+    const loadWorkout = async () => {
+      if (workoutId) {
+        const loaded = await WorkoutStorage.getWorkout(workoutId);
+        setExistingWorkout(loaded);
+        if (loaded) {
+          setWorkout(loaded);
+          setExercises(loaded.exercises);
+        }
+      }
+    };
+    loadWorkout();
+  }, [workoutId]);
+
+  const saveWorkout = async () => {
     const newWorkout: Workout = {
       id: existingWorkout?.id || Date.now().toString(),
       name: workout.name || 'Untitled Workout',
@@ -40,9 +48,9 @@ export default function WorkoutEditor() {
     };
 
     if (existingWorkout) {
-      WorkoutStorage.updateWorkout(newWorkout);
+      await WorkoutStorage.updateWorkout(newWorkout);
     } else {
-      WorkoutStorage.addWorkout(newWorkout);
+      await WorkoutStorage.addWorkout(newWorkout);
     }
 
     router.back();

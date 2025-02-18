@@ -28,13 +28,13 @@ export default function RootLayout() {
   }, [loaded]);
 
   useEffect(() => {
-    if (!isStorageInitialized) {
-      const workouts = WorkoutStorage.getWorkouts();
-      if (workouts.length === 0) {
-        WorkoutStorage.saveWorkouts(getDefaultWorkouts());
+    const initializeStorage = async () => {
+      if (!isStorageInitialized) {
+        await WorkoutStorage.initialize();
+        setStorageInitialized(true);
       }
-      setStorageInitialized(true);
-    }
+    };
+    initializeStorage();
   }, [isStorageInitialized]);
 
   if (!loaded || !isStorageInitialized) {

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Workout, Exercise } from './types/workout';
@@ -11,25 +11,42 @@ type WorkoutPhase = 'prepare' | 'exercise' | 'rest' | 'complete';
 
 export default function WorkoutPlayer() {
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
-  const workout = workoutId ? WorkoutStorage.getWorkout(workoutId) : undefined;
-
-  if (!workout) {
-    router.back();
-    return null;
-  }
-
+  const [workout, setWorkout] = useState<Workout>();
   const [phase, setPhase] = useState<WorkoutPhase>('prepare');
   const [timeLeft, setTimeLeft] = useState(3);
   const [isActive, setIsActive] = useState(false);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const currentExercise = workout.exercises[currentExerciseIndex];
+  
+  const currentExercise = useMemo(() => 
+    workout ? workout.exercises[currentExerciseIndex] : undefined,
+    [workout, currentExerciseIndex]
+  );
   
   // Refs to track current state for sound effects
   const phaseRef = useRef(phase);
   const timeLeftRef = useRef(timeLeft);
-  const currentExerciseRef = useRef(currentExercise);
-  
-  // Update refs when state changes
+  const currentExerciseRef = useRef<Exercise | undefined>();
+
+  // Load workout
+  useEffect(() => {
+    const loadWorkout = async () => {
+      if (workoutId) {
+        const loaded = await WorkoutStorage.getWorkout(workoutId);
+        if (loaded) {
+          setWorkout(loaded);
+        } else {
+          router.back();
+        }
+      }
+    };
+    loadWorkout();
+  }, [workoutId]);
+
+  // Update refs
+  useEffect(() => {
+    currentExerciseRef.current = currentExercise;
+  }, [currentExercise]);
+
   useEffect(() => { 
     console.log('📱 Phase changed:', phase);
     phaseRef.current = phase; 
@@ -41,8 +58,9 @@ export default function WorkoutPlayer() {
   }, [timeLeft]);
   
   useEffect(() => { 
-    console.log('🏋️ Exercise changed:', currentExercise.name);
-    currentExerciseRef.current = currentExercise; 
+    if (currentExercise) {
+      console.log('🏋️ Exercise changed:', currentExercise.name);
+    }
   }, [currentExercise]);
 
   // Initialize sounds
@@ -65,6 +83,8 @@ export default function WorkoutPlayer() {
 
   // Handle phase transition sounds
   useEffect(() => {
+    if (!workout || !currentExercise) return;
+
     if (timeLeft === 0 && isActive) {
       console.log('🔄 Phase transition:', { phase, currentExerciseIndex });
       const handlePhaseEnd = async () => {
@@ -94,10 +114,12 @@ export default function WorkoutPlayer() {
 
       handlePhaseEnd();
     }
-  }, [phase, timeLeft, isActive, currentExerciseIndex, workout.exercises, currentExercise.name]);
+  }, [phase, timeLeft, isActive, currentExerciseIndex, workout, currentExercise]);
 
   // Main timer effect
   useEffect(() => {
+    if (!workout || !currentExercise) return;
+
     let interval: NodeJS.Timeout;
 
     if (isActive && timeLeft > 0) {
@@ -134,7 +156,11 @@ export default function WorkoutPlayer() {
     }
 
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, phase, currentExerciseIndex, workout.exercises, currentExercise.duration]);
+  }, [isActive, timeLeft, phase, currentExerciseIndex, workout, currentExercise]);
+
+  if (!workout || !currentExercise) {
+    return null;
+  }
 
   const toggleWorkout = () => {
     setIsActive(!isActive);
@@ -218,7 +244,7 @@ export default function WorkoutPlayer() {
             onPress={() => {
               setIsActive(false);
               setPhase('prepare');
-              setTimeLeft(3);
+              setTimeLeft(10);
               setCurrentExerciseIndex(0);
             }}
           >

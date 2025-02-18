@@ -1,16 +1,15 @@
-import { MMKV } from 'react-native-mmkv'
-import { Workout } from '../types/workout'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Workout, getDefaultWorkouts } from '../types/workout'
 
-const storage = new MMKV()
 const WORKOUTS_KEY = 'workouts'
 
 export const WorkoutStorage = {
-  saveWorkouts: (workouts: Workout[]) => {
-    storage.set(WORKOUTS_KEY, JSON.stringify(workouts))
+  saveWorkouts: async (workouts: Workout[]) => {
+    await AsyncStorage.setItem(WORKOUTS_KEY, JSON.stringify(workouts))
   },
 
-  getWorkouts: (): Workout[] => {
-    const workouts = storage.getString(WORKOUTS_KEY)
+  getWorkouts: async (): Promise<Workout[]> => {
+    const workouts = await AsyncStorage.getItem(WORKOUTS_KEY)
     if (!workouts) return []
     
     // Convert date strings back to Date objects
@@ -22,36 +21,36 @@ export const WorkoutStorage = {
     })
   },
 
-  addWorkout: (workout: Workout) => {
-    const workouts = WorkoutStorage.getWorkouts()
+  addWorkout: async (workout: Workout) => {
+    const workouts = await WorkoutStorage.getWorkouts()
     workouts.push(workout)
-    WorkoutStorage.saveWorkouts(workouts)
+    await WorkoutStorage.saveWorkouts(workouts)
   },
 
-  updateWorkout: (workout: Workout) => {
-    const workouts = WorkoutStorage.getWorkouts()
+  updateWorkout: async (workout: Workout) => {
+    const workouts = await WorkoutStorage.getWorkouts()
     const index = workouts.findIndex(w => w.id === workout.id)
     if (index !== -1) {
       workouts[index] = workout
-      WorkoutStorage.saveWorkouts(workouts)
+      await WorkoutStorage.saveWorkouts(workouts)
     }
   },
 
-  deleteWorkout: (workoutId: string) => {
-    const workouts = WorkoutStorage.getWorkouts()
+  deleteWorkout: async (workoutId: string) => {
+    const workouts = await WorkoutStorage.getWorkouts()
     const filtered = workouts.filter(w => w.id !== workoutId)
-    WorkoutStorage.saveWorkouts(filtered)
+    await WorkoutStorage.saveWorkouts(filtered)
   },
 
-  getWorkout: (id: string): Workout | undefined => {
-    const workouts = WorkoutStorage.getWorkouts()
+  getWorkout: async (id: string): Promise<Workout | undefined> => {
+    const workouts = await WorkoutStorage.getWorkouts()
     return workouts.find(w => w.id === id)
   },
 
-  initialize: () => {
-    const existingWorkouts = WorkoutStorage.getWorkouts()
+  initialize: async () => {
+    const existingWorkouts = await WorkoutStorage.getWorkouts()
     if (existingWorkouts.length === 0) {
-      WorkoutStorage.saveWorkouts(getDefaultWorkouts())
+      await WorkoutStorage.saveWorkouts(getDefaultWorkouts())
     }
     return WorkoutStorage.getWorkouts()
   }
