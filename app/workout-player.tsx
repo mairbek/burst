@@ -1,28 +1,101 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Workout, Exercise } from './types/workout';
 import { WorkoutStorage } from './utils/storage';
+import SoundManager from './utils/sounds';
 
-type WorkoutPhase = 'prepare' | 'exercise' | 'rest';
+type WorkoutPhase = 'prepare' | 'exercise' | 'rest' | 'complete';
 
 export default function WorkoutPlayer() {
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
   const workout = workoutId ? WorkoutStorage.getWorkout(workoutId) : undefined;
 
-  // Redirect back if no workout found
   if (!workout) {
     router.back();
     return null;
   }
 
   const [phase, setPhase] = useState<WorkoutPhase>('prepare');
-  const [timeLeft, setTimeLeft] = useState(3); // reduced from 10 to 3 seconds
+  const [timeLeft, setTimeLeft] = useState(3);
   const [isActive, setIsActive] = useState(false);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const currentExercise = workout.exercises[currentExerciseIndex];
+  
+  // Refs to track current state for sound effects
+  const phaseRef = useRef(phase);
+  const timeLeftRef = useRef(timeLeft);
+  const currentExerciseRef = useRef(currentExercise);
+  
+  // Update refs when state changes
+  useEffect(() => { 
+    console.log('📱 Phase changed:', phase);
+    phaseRef.current = phase; 
+  }, [phase]);
+  
+  useEffect(() => { 
+    console.log('⏰ Time left:', timeLeft);
+    timeLeftRef.current = timeLeft; 
+  }, [timeLeft]);
+  
+  useEffect(() => { 
+    console.log('🏋️ Exercise changed:', currentExercise.name);
+    currentExerciseRef.current = currentExercise; 
+  }, [currentExercise]);
 
+  // Initialize sounds
+  useEffect(() => {
+    console.log('🎵 Initializing sounds');
+    SoundManager.initialize();
+    return () => {
+      console.log('🎵 Cleaning up sounds');
+      SoundManager.cleanup();
+    };
+  }, []);
+
+  // Handle countdown sounds
+  useEffect(() => {
+    if (isActive && timeLeft <= 5 && timeLeft > 0) {
+      console.log('⏰ Triggering countdown for time:', timeLeft);
+      SoundManager.playSound('countdown', { timeLeft });
+    }
+  }, [isActive, timeLeft]);
+
+  // Handle phase transition sounds
+  useEffect(() => {
+    if (timeLeft === 0 && isActive) {
+      console.log('🔄 Phase transition:', { phase, currentExerciseIndex });
+      const handlePhaseEnd = async () => {
+        if (phase === 'prepare') {
+          console.log('🎬 Starting first exercise:', currentExercise.name);
+          await SoundManager.playSound('start', { exerciseName: currentExercise.name });
+        } else if (phase === 'exercise') {
+          if (currentExerciseIndex < workout.exercises.length - 1) {
+            const nextExercise = workout.exercises[currentExerciseIndex + 1];
+            console.log('➡️ Moving to next:', nextExercise.type === 'rest' ? 'rest' : nextExercise.name);
+            if (nextExercise.type === 'rest') {
+              await SoundManager.playSound('rest');
+            } else {
+              await SoundManager.playSound('start', { exerciseName: nextExercise.name });
+            }
+          } else {
+            console.log('🏁 Workout complete');
+            await SoundManager.playSound('complete');
+            setPhase('complete');
+          }
+        } else if (phase === 'rest') {
+          const nextExercise = workout.exercises[currentExerciseIndex + 1];
+          console.log('💪 Starting after rest:', nextExercise.name);
+          await SoundManager.playSound('start', { exerciseName: nextExercise.name });
+        }
+      };
+
+      handlePhaseEnd();
+    }
+  }, [phase, timeLeft, isActive, currentExerciseIndex, workout.exercises, currentExercise.name]);
+
+  // Main timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -31,34 +104,36 @@ export default function WorkoutPlayer() {
         setTimeLeft((time) => time - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      // Phase transition logic
+      console.log('⏰ Timer reached zero:', { phase, currentExerciseIndex });
       if (phase === 'prepare') {
+        console.log('🔄 Moving from prepare to exercise');
         setPhase('exercise');
         setTimeLeft(currentExercise.duration);
       } else if (phase === 'exercise') {
-        // Check if there are more exercises
         if (currentExerciseIndex < workout.exercises.length - 1) {
           const nextExercise = workout.exercises[currentExerciseIndex + 1];
+          console.log('🔄 Moving to next exercise/rest:', nextExercise.type, nextExercise.name);
           setCurrentExerciseIndex(currentExerciseIndex + 1);
           setTimeLeft(nextExercise.duration);
           setPhase(nextExercise.type === 'rest' ? 'rest' : 'exercise');
         } else {
-          // Workout complete
+          console.log('🏁 Ending workout');
           setIsActive(false);
-          router.back(); // Navigate back when workout is complete
+          setPhase('complete');
         }
       } else if (phase === 'rest') {
-        // After rest, move to next exercise
         if (currentExerciseIndex < workout.exercises.length - 1) {
+          const nextExercise = workout.exercises[currentExerciseIndex + 1];
+          console.log('🔄 Moving from rest to:', nextExercise.name);
           setCurrentExerciseIndex(currentExerciseIndex + 1);
-          setTimeLeft(workout.exercises[currentExerciseIndex + 1].duration);
+          setTimeLeft(nextExercise.duration);
           setPhase('exercise');
         }
       }
     }
 
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, phase, currentExerciseIndex, workout.exercises]);
+  }, [isActive, timeLeft, phase, currentExerciseIndex, workout.exercises, currentExercise.duration]);
 
   const toggleWorkout = () => {
     setIsActive(!isActive);
@@ -70,19 +145,25 @@ export default function WorkoutPlayer() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          headerTitle: workout.name,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <FontAwesome name="close" size={24} color="#000" />
+  const renderContent = () => {
+    if (phase === 'complete') {
+      return (
+        <View style={styles.content}>
+          <Text style={styles.phase}>Workout Complete!</Text>
+          <Text style={styles.description}>Great job! You've completed {workout.name}</Text>
+          <View style={styles.controls}>
+            <Pressable 
+              style={[styles.button, styles.controlButton]} 
+              onPress={() => router.back()}
+            >
+              <FontAwesome name="check" size={24} color="#fff" />
             </Pressable>
-          ),
-        }}
-      />
+          </View>
+        </View>
+      );
+    }
 
+    return (
       <View style={styles.content}>
         <Text style={styles.phase}>
           {phase === 'prepare' ? 'Get Ready' : currentExercise.name}
@@ -117,7 +198,7 @@ export default function WorkoutPlayer() {
             onPress={() => {
               setIsActive(false);
               setPhase('prepare');
-              setTimeLeft(3); // reduced from 10 to 3 seconds
+              setTimeLeft(3);
               setCurrentExerciseIndex(0);
             }}
           >
@@ -125,6 +206,22 @@ export default function WorkoutPlayer() {
           </Pressable>
         </View>
       </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerTitle: phase === 'complete' ? 'Workout Complete' : workout.name,
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()}>
+              <FontAwesome name="close" size={24} color="#000" />
+            </Pressable>
+          ),
+        }}
+      />
+      {renderContent()}
     </View>
   );
 }
